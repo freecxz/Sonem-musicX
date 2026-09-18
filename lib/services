@@ -1,0 +1,69 @@
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class MusicService {
+  final AudioPlayer _player = AudioPlayer();
+  
+  // Catálogo inicial
+  final List<Map<String, String>> catalog = [
+    {'title': 'Summer Vibes', 'artist': 'SoundHelix', 'url': 'https://www.soundhelix.com/Games/Music/SoundHelix-Song-1.mp3', 'img': 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=400'},
+    {'title': 'Deep Focus', 'artist': 'Lo-Fi Girl', 'url': 'https://www.soundhelix.com/Games/Music/SoundHelix-Song-2.mp3', 'img': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'},
+    {'title': 'Night Drive', 'artist': 'Synthwave', 'url': 'https://www.soundhelix.com/Games/Music/SoundHelix-Song-3.mp3', 'img': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400'},
+  ];
+
+  Future<void> play(String url) async {
+    await _player.setSourceUrl(url);
+    await _player.resume();
+  }
+
+  Future<void> pause() async => await _player.pause();
+
+  // Baixa e salva o caminho no SharedPreferences
+  Future<bool> downloadMusic(String url, String title) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final fileName = title.replaceAll(' ', '_');
+      final file = File('${dir.path}/$fileName.mp3');
+      
+      if (await file.exists()) return true;
+
+      final response = await http.get(Uri.parse(url));
+      await file.writeAsBytes(response.bodyBytes);
+      
+      // Salvar na lista de downloads
+      final prefs = await SharedPreferences.getInstance();
+      List<String> downloads = prefs.getStringList('downloads') ?? [];
+      if (!downloads.contains(file.path)) {
+        downloads.add(file.path);
+        await prefs.setStringList('downloads', downloads);
+      }
+      return true;
+    } catch (e) {
+      print("Erro ao baixar: $e");
+      return false;
+    }
+  }
+
+  Future<List<String>> getDownloadedSongs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList('downloads') ?? [];
+  }
+
+  Future<String?> searchLyrics(String title, String artist) async {
+    try {
+      final url = 'https://api.lyrics.ovh/v1/$artist/$title';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['lyrics'];
+      }
+    } catch (e) {
+      return "Não foi possível buscar a letra.";
+    }
+    return null;
+  }
+}
