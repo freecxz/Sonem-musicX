@@ -22,20 +22,16 @@ jobs:
         with:
           channel: 'stable'
 
-      # PASSO NOVO: Forçar limpeza e verificação
-      - name: Debug & Fix Project Root
+      # Passo de diagnóstico seguro
+      - name: Check project files
         run: |
-          echo "=== Listando arquivos ==="
           ls -la
-          echo "=== Verificando pubspec.yaml ==="
-          if [ -f pubspec.yaml ]; then
-            echo "ARQUIVO ENCONTRADO!"
-            head -n 10 pubspec.yaml
-          else
-            echo "ARQUIVO NÃO ENCONTRADO! Criando projeto novo..."
-            # Se não achar, cria um projeto Flutter básico para testar
-            flutter create --project-name sonem_music_temp . --force
-          fi
+          echo "--- Checking pubspec.yaml content ---"
+          cat pubspec.yaml
+
+      # Recria apenas as pastas nativas se estiverem faltando ou quebradas
+      - name: Recreate native folders
+        run: flutter create --platforms=android .
 
       - name: Install dependencies
         run: flutter pub get
