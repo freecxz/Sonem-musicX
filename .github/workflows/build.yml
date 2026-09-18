@@ -21,6 +21,13 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          # Força o Flutter a validar o projeto na raiz
+          flutter-version: '3.x' 
+
+      - name: Verify Project Structure
+        run: |
+          ls -la
+          cat pubspec.yaml | head -n 5
 
       - name: Install dependencies
         run: flutter pub get
